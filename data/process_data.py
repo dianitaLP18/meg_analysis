@@ -1,97 +1,264 @@
 import os
 import h5py
-import pandas as pd
 import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
+from collections import OrderedDict
+from typing import Literal
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 
-# Map the prefixes to numeric categories
+# configuration variables
 LABEL_MAP = {
     'rest': 0,
     'task_motor': 1,
     'task_story_math': 2,
     'task_working_memory': 3
 }
+WINDOW_SIZE = 256
+STRIDE = 256
+DOWNSAMPLE_FACTOR = 4
+NORM_METHOD = Literal['zscore', 'minmax']
 
 
-def preprocess_matrix(matrix, downsample_factor=4):
-    """Applies downsampling and time-wise Z-score normalization."""
-    # Downsample columns (time-steps)
-    matrix_downsampled = matrix[:, ::downsample_factor]
-
-    # Time-wise Z-score normalization
-    mean = np.mean(matrix_downsampled, axis=1, keepdims=True)
-    std = np.std(matrix_downsampled, axis=1, keepdims=True)
-    std[std == 0] = 1.0  # Avoid zero-division
-
-    return (matrix_downsampled - mean) / std
+# preprocessing functions
+def downsample(matrix: np.ndarray, factor: int = DOWNSAMPLE_FACTOR) -> np.ndarray:
+    """Downsamples the matrix by selecting every nth column."""
+    return matrix[:, ::factor]
 
 
-def load_dataset_from_folder(folder_path):
+def normalise(matrix: np.ndarray, method: NORM_METHOD) -> np.ndarray:
+    """Normalises the matrix using the specified method.
+
+    :param matrix: the input matrix to normalise.
+    :param method: the normalisation method to use.
+    :return: the normalised matrix.
     """
-    Scans a folder for .h5 files, extracts labels from names,
-    and returns arrays of preprocessed data (X) and labels (y).
+    if method == 'zscore':
+        mean = np.mean(matrix, axis=1, keepdims=True)
+        std = np.std(matrix, axis=1, keepdims=True)
+        std[std == 0] = 1.0
+        return (matrix - mean) / std
+    elif method == 'minmax':
+        min_val = np.min(matrix, axis=1, keepdims=True)
+        max_val = np.max(matrix, axis=1, keepdims=True)
+        range_val = max_val - min_val
+        range_val[range_val == 0] = 1.0
+        return (matrix - min_val) / range_val
+
+    raise ValueError(f"Unsupported normalisation method: {method}")
+
+
+def preprocess_matrix(matrix: np.ndarray, method: NORM_METHOD = 'zscore') -> np.ndarray:
+    """Applied downsampling and normalisation to the input matrix.
+
+    :param matrix: the raw input matrix to preprocess.
+    :param norm_method: the normalisation method to apply after downsampling.
+    :return: the preprocessed matrix.
     """
-    X_list = []
-    y_list = []
+    return normalise(downsample(matrix), method=method).astype(np.float32)
 
-    if not os.path.exists(folder_path):
-        print(f"Error: Path {folder_path} does not exist.")
-        return None, None
 
-    # Get all .h5 files in alphabetic/logical order
-    files = sorted([f for f in os.listdir(folder_path) if f.endswith('.h5')])
+# indexing and dataset
+def _get_label_from_filename(filename: str) -> int | None:
+    """Extracts the label from the filename based on the LABEL_MAP.
 
-    print(f"Processing {len(files)} files found in: {folder_path}...")
+    :param filename: the name of the file to extract the label from.
+    :return: the corresponding label integer or None if no match is found.
+    """
+    return next((v for p, v in LABEL_MAP.items() if filename.startswith(p)), None)
 
-    for filename in files:
-        # Determine label matching the file prefix string
-        label = None
-        for prefix, value in LABEL_MAP.items():
-            if filename.startswith(prefix):
-                label = value
-                break
 
+def build_window_index(folder_path: str, filenames: list[str] | None = None) -> list[tuple[str, int, int]]:
+    """Scans a folder for .h5 files and builds an
+    index of (filename, start_col, end_col) tuples.
+
+    :param folder_path: path to the folder containing .h5 files.
+    :param filenames: optional list of filenames to include.
+    :return: list of tuples with filename and column indices.
+    """
+    if filenames is None:
+        filenames = [f for f in sorted(os.listdir(folder_path)) if f.endswith('.h5')]
+
+    index = []
+    for filename in filenames:
+        label = _get_label_from_filename(filename)
         if label is None:
-            continue  # Skip files that don't match the standard naming conventions
-
-        file_fullpath = os.path.join(folder_path, filename)
-
-        # Open and load the dataset contents safely
-        try:
-            with h5py.File(file_fullpath, 'r') as f:
-                key = list(f.keys())[0]
-                raw_matrix = f[key][()]
-
-                # Apply downsampling and normalization
-                processed_matrix = preprocess_matrix(raw_matrix, downsample_factor=4)
-
-                X_list.append(processed_matrix)
-                y_list.append(label)
-        except Exception as e:
-            print(f"Failed to read {filename}: {e}")
-
-    # Convert structural lists to stable NumPy arrays
-    X = np.array(X_list)
-    y = np.array(y_list)
-    return X, y
+            continue
+        filepath = os.path.join(folder_path, filename)
+        # look at the dimension without loading
+        with h5py.File(filepath, 'r') as f:
+            key = list(f.keys())[0]
+            # account for downsampling
+            n_timesteps = f[key].shape[1] // DOWNSAMPLE_FACTOR
+        for start in range(0, n_timesteps - WINDOW_SIZE + 1, STRIDE):
+            index.append((filepath, start, label))
+    return index
 
 
-# Setting up for cross subject classification
-print("Loading cross subject dataset")
-X_cross_train, y_cross_train = load_dataset_from_folder("assign2/Final_Project_data/Cross/train")
-X_cross_test1, y_cross_test1 = load_dataset_from_folder("assign2/Final_Project_data/Cross/test1")
-X_cross_test2, y_cross_test2 = load_dataset_from_folder("assign2/Final_Project_data/Cross/test2")
-X_cross_test3, y_cross_test3 = load_dataset_from_folder("assign2/Final_Project_data/Cross/test3")
+class MEGWindowDataset(Dataset):
+    def __init__(self, index: list[tuple[str, int, int]], norm_method: NORM_METHOD, cache_size: int = 4) -> None:
+        """Initialises the dataset with an index of file paths and column ranges.
 
-print(f"\nFinal Train Matrix Shapes: X={X_cross_train.shape}, y={y_cross_train.shape}")
-print(f"Final Test1 Matrix Shapes: X={X_cross_test1.shape}, y={y_cross_test1.shape}")
-print(f"Final Test2 Matrix Shapes: X={X_cross_test1.shape}, y={y_cross_test2.shape}")
-print(f"Final Test3 Matrix Shapes: X={X_cross_test1.shape}, y={y_cross_test3.shape}")
+        :param index: list of tuples (filepath, start_col, label).
+        :param cache_files: whether to load all files into memory for faster access.
+        """
+        self.index = index
+        self.norm_method = norm_method
+        self.cache_size = cache_size
+        self._cache: OrderedDict[str, np.ndarray] = OrderedDict()
+
+    def __len__(self):
+        return len(self.index)
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        filepath, start, label = self.index[idx]
+        matrix = self._get_matrix(filepath)
+        window = matrix[:, start:start + WINDOW_SIZE]
+        return torch.from_numpy(window).float(), torch.tensor(label, dtype=torch.long)
+
+    def _get_matrix(self, filepath: str) -> np.ndarray:
+        """Loads the matrix from the file, using cache if enabled.
+
+        :param filepath: path to the .h5 file.
+        :return: the preprocessed matrix as a NumPy array.
+        """
+        if filepath in self._cache:
+            self._cache.move_to_end(filepath)
+            return self._cache[filepath]
+        with h5py.File(filepath, 'r') as f:
+            key = list(f.keys())[0]
+            raw = f[key][()]
+        processed = preprocess_matrix(raw, method=self.norm_method)
+        self._cache[filepath] = processed
+        if len(self._cache) > self.cache_size:
+            self._cache.popitem(last=False)
+        return processed
 
 
-# print("Loading intra subject dataset")
-X_intra_train, y_intra_train = load_dataset_from_folder("assign2/Final_Project_data/Intra/train")
-X_intra_test, y_intra_test = load_dataset_from_folder("assign2/Final_Project_data/Intra/test")
+# splits
+def splitting(folder_path: str, val_fraction: float = 0.2, seed: int = 42) -> tuple[list[str], list[str]]:
+    """Splits the dataset into training and validation sets based on file paths.
 
-print(f"\nFinal Intra train Matrix Shapes: X={X_intra_train.shape}, y={y_intra_train.shape}")
-print(f"Final Intra test Matrix Shapes: X={X_intra_test.shape}, y={y_intra_test.shape}")
+    :param folder_path: path to the folder containing .h5 files.
+    :param val_fraction: fraction of data to use for validation.
+    :param seed: random seed for reproducibility.
+    :return: tuple of (train_files, val_files) lists.
+    """
+    files = [f for f in sorted(os.listdir(folder_path)) if f.endswith('.h5')]
+    labels = [_get_label_from_filename(f) for f in files]
+    pairs = [(f, l) for f, l in zip(files, labels) if l is not None]
+    files, labels = zip(*pairs)
+    train_files, val_files = train_test_split(
+        list(files), test_size=val_fraction, stratify=labels, random_state=seed
+    )
+    return train_files, val_files
+
+
+# build loaders
+def make_loaders(
+        train_folder: str, test_folders: list[str],
+        norm_method: NORM_METHOD, batch_size: int = 32,
+        val_fraction: float = 0.2, num_workers: int = 2) -> tuple[DataLoader, DataLoader, DataLoader]:
+    """Creates PyTorch DataLoaders for training and validation datasets.
+
+    :param train_folder: path to the training data folder.
+    :param test_folders: list of paths to test data folders.
+    :param norm_method: normalisation method to apply to the data.
+    :param batch_size: number of samples per batch.
+    :param val_fraction: fraction of training data to use for validation.
+    :param num_workers: number of subprocesses to use for data loading.
+    :return: tuple of (train_loader, val_loader).
+    """
+    train_files, val_files = splitting(train_folder, val_fraction)
+    train_index = build_window_index(train_folder, filenames=train_files)
+    val_index = build_window_index(train_folder, filenames=val_files)
+
+    train_dataset = MEGWindowDataset(train_index, norm_method=norm_method)
+    val_dataset = MEGWindowDataset(val_index, norm_method=norm_method)
+    test_datasets = [MEGWindowDataset(build_window_index(p), norm_method=norm_method) for p in test_folders]
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    test_loaders = [DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+                    for ds in test_datasets]
+
+    return train_loader, val_loader, test_loaders
+
+
+def compare_normalisations(raw_matrix: np.ndarray, save_path: str,
+                           channel: int = 0, n_timesteps: int = 1000) -> None:
+    """Plots the raw, z-score, and min-max normalised versions of a single channel for comparision.
+
+    :param raw_matrix: the original raw matrix to compare.
+    :param save_path: the path to save the resulting plot.
+    :param channel: the channel index to plot.
+    :param n_timesteps: the number of timesteps to plot for each version.
+    """
+    downsampled = downsample(raw_matrix)
+    z = normalise(downsampled, method='zscore')
+    min_max = normalise(downsampled, method='minmax')
+
+    versions = [('Raw (downsampled)', downsampled), ('Z-score Normalisation', z),
+                ('Min-Max Normalisation', min_max)]
+
+    fig, axes = plt.subplots(len(versions), 3, figsize=(15, 10))
+
+    # histograms of all values
+    for ax, (name, data) in zip(axes[0], versions):
+        ax.hist(data.flatten(), bins=100)
+        ax.set_yscale('log')
+        ax.set_title(f'{name}\nvalue distribution')
+        ax.set_xlabel('value')
+        ax.set_ylabel('log(count)')
+
+    # one channel over time
+    for ax, (name, data) in zip(axes[1], versions):
+        ax.plot(data[channel, :n_timesteps])
+        ax.set_title(f'{name}\nchannel {channel}, first {n_timesteps} steps')
+        ax.set_xlabel('time step')
+        ax.set_ylabel('value')
+
+    # boxplots across channels
+    sample_channels = np.linspace(0, data.shape[0] - 1, 20, dtype=int)
+    for ax, (name, data) in zip(axes[2], versions):
+        ax.boxplot([data[c] for c in sample_channels], showfliers=True)
+        ax.set_title(f'{name}\nper-channel spread (20 sample channels)')
+        ax.set_xlabel('channel index')
+        ax.set_ylabel('value')
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=120, bbox_inches="tight")
+    plt.show()
+
+
+if __name__ == "__main__":
+    base = "data/Final_Project_data/"
+
+    # intra subject split
+    intra_train, intra_val, intra_tests = make_loaders(
+        train_folder=f"{base}Intra/train",
+        test_folders=[f"{base}Intra/test"],
+        norm_method='zscore'
+    )
+
+    # cross subject split
+    cross_train, cross_val, cross_tests = make_loaders(
+        train_folder=f"{base}Cross/train",
+        test_folders=[f"{base}Cross/test1", f"{base}Cross/test2", f"{base}Cross/test3"],
+        norm_method='zscore'
+    )
+    print(f"Intra train windows: {len(intra_train.dataset)}")
+    print(f"Intra val windows: {len(intra_val.dataset)}")
+    print(f"Intra test windows: {len(intra_tests[0].dataset)}")
+    print("-" * 40)
+    print(f"Cross train windows: {len(cross_train.dataset)}")
+    print(f"Cross val windows:   {len(cross_val.dataset)}")
+    for i, tl in enumerate(cross_tests, 1):
+        print(f"Cross test{i} windows: {len(tl.dataset)}")
+
+    # compare the normalisation methods visually
+    with h5py.File("data/Final_Project_data/Cross/train/rest_113922_1.h5", 'r') as f:
+        raw = f[list(f.keys())[0]][()]
+    compare_normalisations(raw, save_path='images/normalisation_comparison.png', channel=42)

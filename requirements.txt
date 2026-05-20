@@ -7,3 +7,4 @@ tensorflow==2.14.0
 statsmodels==0.14.0
 numpy==1.26.4
 h5py==3.9.0
+torch==2.11.0

@@ -1,5 +1,8 @@
 venv/
 meg/
+data/Final_Project_data/
+.DS_Store/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
