@@ -3,6 +3,7 @@ import h5py
 import pandas as pd
 import numpy as np
 
+
 # Map the prefixes to numeric categories
 LABEL_MAP = {
     'rest': 0,
@@ -11,17 +12,19 @@ LABEL_MAP = {
     'task_working_memory': 3
 }
 
+
 def preprocess_matrix(matrix, downsample_factor=4):
     """Applies downsampling and time-wise Z-score normalization."""
     # Downsample columns (time-steps)
     matrix_downsampled = matrix[:, ::downsample_factor]
-    
+
     # Time-wise Z-score normalization
     mean = np.mean(matrix_downsampled, axis=1, keepdims=True)
     std = np.std(matrix_downsampled, axis=1, keepdims=True)
     std[std == 0] = 1.0  # Avoid zero-division
-    
+
     return (matrix_downsampled - mean) / std
+
 
 def load_dataset_from_folder(folder_path):
     """
@@ -30,16 +33,16 @@ def load_dataset_from_folder(folder_path):
     """
     X_list = []
     y_list = []
-    
+
     if not os.path.exists(folder_path):
         print(f"Error: Path {folder_path} does not exist.")
         return None, None
 
     # Get all .h5 files in alphabetic/logical order
     files = sorted([f for f in os.listdir(folder_path) if f.endswith('.h5')])
-    
+
     print(f"Processing {len(files)} files found in: {folder_path}...")
-    
+
     for filename in files:
         # Determine label matching the file prefix string
         label = None
@@ -47,21 +50,21 @@ def load_dataset_from_folder(folder_path):
             if filename.startswith(prefix):
                 label = value
                 break
-                
+
         if label is None:
-            continue # Skip files that don't match the standard naming conventions
-            
+            continue  # Skip files that don't match the standard naming conventions
+
         file_fullpath = os.path.join(folder_path, filename)
-        
+
         # Open and load the dataset contents safely
         try:
             with h5py.File(file_fullpath, 'r') as f:
                 key = list(f.keys())[0]
                 raw_matrix = f[key][()]
-                
+
                 # Apply downsampling and normalization
                 processed_matrix = preprocess_matrix(raw_matrix, downsample_factor=4)
-                
+
                 X_list.append(processed_matrix)
                 y_list.append(label)
         except Exception as e:
@@ -71,6 +74,7 @@ def load_dataset_from_folder(folder_path):
     X = np.array(X_list)
     y = np.array(y_list)
     return X, y
+
 
 # Setting up for cross subject classification
 print("Loading cross subject dataset")
