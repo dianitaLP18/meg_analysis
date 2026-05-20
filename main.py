@@ -3,6 +3,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from data.process_data import make_loaders
 from models.majority_classifier import MajorityClassModel
+from models.logistic_regression import LogisticRegressionModel
 # more models to be imported here
 from utils.evaluate import evaluate_model
 
@@ -18,7 +19,7 @@ def build_model() -> dict:
     """Initialize the models for training and evaluation. Hyperparameters also set here."""
     return {
         'majority': MajorityClassModel(),
-        'logistic_regression': # to be implemented
+        'logistic_regression': LogisticRegressionModel(),
         'cnn': # to be implemented
     }
 
