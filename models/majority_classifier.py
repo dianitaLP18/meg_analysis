@@ -1,10 +1,10 @@
 import numpy as np
 from collections import Counter
-
+from base_model import AbstractModel
 """Majority Class Predictor model implementation"""
 
 
-class MajorityClassModel:
+class MajorityClassModel(AbstractModel):
     def __init__(self) -> None:
         """Initialize the Majority Class Predictor model"""
         self.model = None
