@@ -20,14 +20,14 @@ def build_model() -> dict:
     return {
         'majority': MajorityClassModel(),
         'logistic_regression': LogisticRegressionModel(),
-        'cnn': CNNModel(n_channels=64, n_classes=4)
+        'cnn': CNNModel()
     }
 
 
 def run_experiment(setting_name: str, train_loader: DataLoader, val_loader: DataLoader,
                    test_loaders: DataLoader, test_names: str) -> dict:
     """Run the full pipeline for training and evaluating the models on the specified setting.
-    
+
     :param setting_name: name of the experimental setting (cross or intra).
     :param train_loader: training set.
     :param val_loader: validation set.

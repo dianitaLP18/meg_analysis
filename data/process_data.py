@@ -1,9 +1,10 @@
 import os
+import re
 import h5py
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from typing import Literal
 from sklearn.model_selection import train_test_split
 
@@ -84,6 +85,7 @@ def build_window_index(folder_path: str, filenames: list[str] | None = None) -> 
     for filename in filenames:
         label = _get_label_from_filename(filename)
         if label is None:
+            print(f"[warn] skipping file with unknown label prefix: {filename}")
             continue
         filepath = os.path.join(folder_path, filename)
         # look at the dimension without loading
@@ -97,7 +99,7 @@ def build_window_index(folder_path: str, filenames: list[str] | None = None) -> 
 
 
 class MEGWindowDataset(Dataset):
-    def __init__(self, index: list[tuple[str, int, int]], norm_method: NORM_METHOD, cache_size: int = 4) -> None:
+    def __init__(self, index: list[tuple[str, int, int]], norm_method: NORM_METHOD, cache_size: int = 1) -> None:
         """Initialises the dataset with an index of file paths and column ranges.
 
         :param index: list of tuples (filepath, start_col, label).
@@ -155,11 +157,36 @@ def splitting(folder_path: str, val_fraction: float = 0.2, seed: int = 42) -> tu
     return train_files, val_files
 
 
+def subject_aware_split(folder_path: str, val_subject: str | None = None) -> tuple[list[str], list[str]]:
+    """Split files so that val_subject's files form the val set.
+
+    :param folder_path: path to the folder containing .h5 files.
+    :param val_subject: subject ID to use for validation.
+           If None, the subject with the fewest files will be used.
+    :return: tuple of (train_files, val_files) lists.
+    """
+    files = [f for f in sorted(os.listdir(folder_path)) if f.endswith('.h5')]
+    by_subject: dict[str, list[str]] = defaultdict(list)
+    for f in files:
+        m = re.search(r'(\d{6})', f)
+        if m:
+            by_subject[m.group(1)].append(f)
+
+    if val_subject is None:
+        val_subject = min(by_subject, key=lambda s: len(by_subject[s]))
+
+    val_files = by_subject[val_subject]
+    train_files = [f for sublist_id, sublist in by_subject.items()
+                   if sublist_id != val_subject for f in sublist]
+    return train_files, val_files
+
+
 # build loaders
 def make_loaders(
         train_folder: str, test_folders: list[str],
         norm_method: NORM_METHOD, batch_size: int = 32,
-        val_fraction: float = 0.2, num_workers: int = 2) -> tuple[DataLoader, DataLoader, DataLoader]:
+        val_fraction: float = 0.2, num_workers: int = 2,
+        cross_subject: bool = False) -> tuple[DataLoader, DataLoader, list[DataLoader]]:
     """Creates PyTorch DataLoaders for training and validation datasets.
 
     :param train_folder: path to the training data folder.
@@ -168,9 +195,14 @@ def make_loaders(
     :param batch_size: number of samples per batch.
     :param val_fraction: fraction of training data to use for validation.
     :param num_workers: number of subprocesses to use for data loading.
+    :param cross_subject: whether to use subject-aware splitting for validation.
     :return: tuple of (train_loader, val_loader).
     """
-    train_files, val_files = splitting(train_folder, val_fraction)
+    if cross_subject:
+        train_files, val_files = subject_aware_split(train_folder)
+    else:
+        train_files, val_files = splitting(train_folder, val_fraction)
+
     train_index = build_window_index(train_folder, filenames=train_files)
     val_index = build_window_index(train_folder, filenames=val_files)
 
@@ -182,6 +214,13 @@ def make_loaders(
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     test_loaders = [DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
                     for ds in test_datasets]
+
+    assert len(train_index) > 0, f"Empty train index for {train_folder}"
+    assert len(val_index) > 0, f"Empty val index for {train_folder}"
+    train_labels = {lbl for _, _, lbl in train_index}
+    val_labels = {lbl for _, _, lbl in val_index}
+    assert train_labels == set(LABEL_MAP.values()), f"Missing classes in train: {set(LABEL_MAP.values()) - train_labels}"
+    assert val_labels == set(LABEL_MAP.values()), f"Missing classes in val: {set(LABEL_MAP.values()) - val_labels}"
 
     return train_loader, val_loader, test_loaders
 
@@ -200,7 +239,8 @@ if __name__ == "__main__":
     cross_train, cross_val, cross_tests = make_loaders(
         train_folder=f"{base}Cross/train",
         test_folders=[f"{base}Cross/test1", f"{base}Cross/test2", f"{base}Cross/test3"],
-        norm_method='zscore'
+        norm_method='zscore',
+        cross_subject=True
     )
     print(f"Intra train windows: {len(intra_train.dataset)}")
     print(f"Intra val windows: {len(intra_val.dataset)}")

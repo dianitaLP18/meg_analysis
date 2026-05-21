@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import torch
 import torch.nn as nn
 from .base_model import AbstractModel
@@ -7,14 +8,31 @@ from .base_model import AbstractModel
 
 
 class CNNModel(AbstractModel):
-    def __init__(self, n_channels: int, n_classes: int) -> None:
+    def __init__(self,
+                 n_input_channels: int = 248,
+                 n_classes: int = 4,
+                 base_filters: int = 32,
+                 lr: float = 5e-4,
+                 weight_decay: float = 1e-4,
+                 epochs: int = 30,
+                 patience: int = 7) -> None:
         """Initialize the CNN model
 
-        :param n_channels: number of input channels
-        :param n_classes: number of output classes
+        :param n_input_channels: number of input channels.
+        :param n_classes: number of output classes.
+        :param base_filters: number of base filters.
+        :param lr: learning rate.
+        :param weight_decay: weight decay.
+        :param epochs: number of epochs.
+        :param patience: patience for early stopping.
         """
-        self.n_channels = n_channels
+        self.n_input_channels = n_input_channels
         self.n_classes = n_classes
+        self.base_filters = base_filters
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.epochs = epochs
+        self.patience = patience
         self.model = self.create()
 
     def create(self) -> nn.Module:
@@ -22,36 +40,34 @@ class CNNModel(AbstractModel):
 
         device_type = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device_type)
+        f = self.base_filters
 
         self.model = nn.Sequential(
-            nn.Conv1d(in_channels=248, out_channels=self.n_channels,
-                      kernel_size=7, padding=3),
-            nn.BatchNorm1d(self.n_channels),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=4),
+            nn.Conv1d(self.n_input_channels, f, kernel_size=7, padding=3),
+            nn.BatchNorm1d(f), nn.ReLU(), nn.MaxPool1d(2),
 
-            nn.Conv1d(self.n_channels, self.n_channels * 2,
-                      kernel_size=5, padding=2),
-            nn.BatchNorm1d(self.n_channels * 2),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=4),
+            nn.Conv1d(f, f * 2, kernel_size=5, padding=2),
+            nn.BatchNorm1d(f * 2), nn.ReLU(), nn.MaxPool1d(2),
 
-            nn.Conv1d(self.n_channels * 2, self.n_channels * 4,
-                      kernel_size=3, padding=1),
-            nn.BatchNorm1d(self.n_channels * 4),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool1d(1),
+            nn.Conv1d(f * 2, f * 2, kernel_size=3, padding=1),
+            nn.BatchNorm1d(f * 2), nn.ReLU(), nn.MaxPool1d(2),
 
+            nn.AdaptiveAvgPool1d(4),
             nn.Flatten(),
-            nn.Linear(self.n_channels * 4, 128),
+            nn.Dropout(0.5),
+            nn.Linear(f * 2 * 4, 64),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(128, self.n_classes)
+            nn.Linear(64, self.n_classes)
         ).to(self.device)
 
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay
+        )
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer, mode='min', factor=0.5, patience=3
+        )
         self.criterion = nn.CrossEntropyLoss()
-        self.epochs = 20
 
         return self.model
 
@@ -66,6 +82,9 @@ class CNNModel(AbstractModel):
             raise ValueError("CNN model has not been created yet")
 
         history = {'train_loss': [], 'val_loss': [], 'val_acc': []}
+        best_val_loss = float('inf')
+        best_state = None
+        epochs_without_improvement = 0
 
         for epoch in range(self.epochs):
             self.model.train()
@@ -95,11 +114,25 @@ class CNNModel(AbstractModel):
             history['train_loss'].append(avg_train)
             history['val_loss'].append(avg_val)
             history['val_acc'].append(val_acc)
+            self.scheduler.step(avg_val)
 
-            print(f"epoch {epoch+1}/{self.epochs} /"
-                  f"train_loss={avg_train:.4f} / "
-                  f"val_loss={avg_val:.4f} / val_acc={val_acc:.4f} ")
+            print(f"epoch {epoch+1}/{self.epochs} | "
+                  f"train_loss={avg_train:.4f} | "
+                  f"val_loss={avg_val:.4f} | val_acc={val_acc:.4f} ")
 
+            # early stopping
+            if avg_val < best_val_loss:
+                best_val_loss = avg_val
+                best_state = copy.deepcopy(self.model.state_dict())
+                epochs_without_improvement = 0
+            else:
+                epochs_without_improvement += 1
+                if epochs_without_improvement >= self.patience:
+                    print(f"Early stopping at epoch {epoch+1} (best val_loss={best_val_loss:.4f})")
+                    break
+
+        if best_state is not None:
+            self.model.load_state_dict(best_state)
         return history
 
     def predict(self, loader) -> tuple[np.ndarray, np.ndarray]:

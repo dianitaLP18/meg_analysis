@@ -10,7 +10,7 @@ class MajorityClassModel(AbstractModel):
         """Initialize the Majority Class Predictor model"""
         self.model = None
 
-    def fit(self, train_loader, val_loader) -> None:
+    def fit(self, train_loader, val_loader=None) -> None:
         """Create and train model to determine the most common label
 
         :param train_loader: target values
