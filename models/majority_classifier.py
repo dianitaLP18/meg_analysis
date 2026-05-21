@@ -1,6 +1,7 @@
 import numpy as np
 from collections import Counter
-from base_model import AbstractModel
+from .base_model import AbstractModel
+
 """Majority Class Predictor model implementation"""
 
 
@@ -9,23 +10,35 @@ class MajorityClassModel(AbstractModel):
         """Initialize the Majority Class Predictor model"""
         self.model = None
 
-    def fit(self, y: np.ndarray) -> None:
+    def fit(self, train_loader, val_loader) -> None:
         """Create and train model to determine the most common label
 
-        :param y: target values
+        :param train_loader: target values
+        :param val_loader: validation set
         """
-        self.model = Counter(y).most_common(1)[0][0]
+        all_labels = []
+        for _, y in train_loader:
+            all_labels.extend(y.numpy())
+        self.model = Counter(all_labels).most_common(1)[0][0]
         return self.model
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, test_loader) -> np.ndarray:
         """Make predictions using the trained model
 
-        :param X: input features
-        :return: predicted values
+        :param test_loader: test set
+        :return: predicted labels
         """
         if self.model is None:
             raise ValueError("Majority class model has not been created")
-        return np.array([self.model] * len(X))
+
+        all_labels = []
+        for _, y in test_loader:
+            all_labels.extend(y.numpy())
+
+        n = len(all_labels)
+        preds = np.array([self.model] * n)
+        true_labels = np.array(all_labels)
+        return preds, true_labels
 
     def accuracy(self, y: np.ndarray) -> float:
         """Calculate accuracy of the model on test data

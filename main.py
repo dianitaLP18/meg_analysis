@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from data.process_data import make_loaders
 from models.majority_classifier import MajorityClassModel
 from models.logistic_regression import LogisticRegressionModel
-# more models to be imported here
+from models.cnn import CNNModel
 from utils.evaluate import evaluate_model
 
 
@@ -20,7 +20,7 @@ def build_model() -> dict:
     return {
         'majority': MajorityClassModel(),
         'logistic_regression': LogisticRegressionModel(),
-        'cnn': # to be implemented
+        'cnn': CNNModel(n_channels=64, n_classes=4)
     }
 
 
@@ -69,7 +69,11 @@ if __name__ == "__main__":
     # cross
     cross_train, cross_val, cross_tests = make_loaders(
         train_folder=f"{data_path}Cross/train",
-        test_folders=[f"{data_path}Cross/test"],
+        test_folders=[
+            f"{data_path}Cross/test1",
+            f"{data_path}Cross/test2",
+            f"{data_path}Cross/test3",
+        ],
         norm_method='zscore'
     )
     cross_results = run_experiment(

@@ -1,15 +1,13 @@
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from base_model import AbstractModel
+from .base_model import AbstractModel
 from sklearn.linear_model import LogisticRegression
 
 """Logistic Regression model implementation"""
 
 
 def _summary_features(window: np.ndarray) -> np.ndarray:
-    """Obtain summary features from a window of data.
-
-    The features are mean, std, min, and max for each channel.
+    """Obtain summary features (mean, std, min, max) from a window of data.
 
     :param window: input data window of shape (n_channels, time)
     :return: summary features of shape (n_channels * 4,)
@@ -22,8 +20,7 @@ def _summary_features(window: np.ndarray) -> np.ndarray:
 
 def _loader_to_features(loader) -> tuple[np.ndarray, np.ndarray]:
     """Convert a DataLoader into features and labels.
-
-    This iterates over all of the batches and extracts summary features.
+    Iterates over all batches and extracts summary features.
 
     :param loader: dataLoader for batches (X_batch, y_batch) pairs
     :return: tuple (X,y) of features (X) and labels (y)
@@ -42,6 +39,7 @@ class LogisticRegressionModel(AbstractModel):
         """Initialize the Logistic Regression model"""
         self.model = None
         self.scaler = None
+        self.create()
 
     def create(self) -> tuple:
         """Create Logistic Regression model
@@ -52,7 +50,7 @@ class LogisticRegressionModel(AbstractModel):
         self.model = LogisticRegression(max_iter=1000, C=1.0)
         return self.model, self.scaler
 
-    def fit(self, train_loader, val_loader=None) -> dict[str, float]:
+    def fit(self, train_loader, val_loader=None) -> None:
         """Train the Logistic Regression model
 
         :param train_loader: DataLoader for training data
