@@ -1,0 +1,277 @@
+============================================================
+Intra-subject
+============================================================
+
+>>> Training majority model
+
+--- majority on intra-test ---
+Accuracy: 0.2500
+Confusion matrix:
+[[ 0 68  0  0]
+ [ 0 68  0  0]
+ [ 0 68  0  0]
+ [ 0 68  0  0]]
+                     precision    recall  f1-score   support
+
+               rest     0.0000    0.0000    0.0000        68
+         task_motor     0.2500    1.0000    0.4000        68
+    task_story_math     0.0000    0.0000    0.0000        68
+task_working_memory     0.0000    0.0000    0.0000        68
+
+           accuracy                         0.2500       272
+          macro avg     0.0625    0.2500    0.1000       272
+       weighted avg     0.0625    0.2500    0.1000       272
+
+
+>>> Training logistic_regression model
+
+--- logistic_regression on intra-test ---
+Accuracy: 0.6066
+Confusion matrix:
+[[68  0  0  0]
+ [ 0 68  0  0]
+ [11  1 20 36]
+ [ 0 25 34  9]]
+                     precision    recall  f1-score   support
+
+               rest     0.8608    1.0000    0.9252        68
+         task_motor     0.7234    1.0000    0.8395        68
+    task_story_math     0.3704    0.2941    0.3279        68
+task_working_memory     0.2000    0.1324    0.1593        68
+
+           accuracy                         0.6066       272
+          macro avg     0.5386    0.6066    0.5630       272
+       weighted avg     0.5386    0.6066    0.5630       272
+
+
+>>> Training cnn model
+epoch 1/30 | train_loss=1.3796 | val_loss=1.3174 | val_acc=0.3487 
+epoch 2/30 | train_loss=1.2179 | val_loss=1.1409 | val_acc=0.3950 
+epoch 3/30 | train_loss=1.0482 | val_loss=1.0395 | val_acc=0.4034 
+epoch 4/30 | train_loss=0.9698 | val_loss=1.0100 | val_acc=0.4790 
+epoch 5/30 | train_loss=0.8480 | val_loss=1.0340 | val_acc=0.4874 
+epoch 6/30 | train_loss=0.7818 | val_loss=0.9229 | val_acc=0.5630 
+epoch 7/30 | train_loss=0.7110 | val_loss=1.0265 | val_acc=0.5504 
+epoch 8/30 | train_loss=0.5954 | val_loss=1.1513 | val_acc=0.5462 
+epoch 9/30 | train_loss=0.5498 | val_loss=0.9010 | val_acc=0.6218 
+epoch 10/30 | train_loss=0.4921 | val_loss=0.8440 | val_acc=0.6303 
+epoch 11/30 | train_loss=0.4430 | val_loss=1.1225 | val_acc=0.5882 
+epoch 12/30 | train_loss=0.3498 | val_loss=0.9324 | val_acc=0.6849 
+epoch 13/30 | train_loss=0.3135 | val_loss=1.0543 | val_acc=0.6555 
+epoch 14/30 | train_loss=0.2642 | val_loss=0.9717 | val_acc=0.6387 
+epoch 15/30 | train_loss=0.1600 | val_loss=1.0398 | val_acc=0.6176 
+epoch 16/30 | train_loss=0.1298 | val_loss=0.9866 | val_acc=0.6639 
+epoch 17/30 | train_loss=0.1310 | val_loss=1.1190 | val_acc=0.6513 
+Early stopping at epoch 17 (best val_loss=0.8440)
+
+--- cnn on intra-test ---
+Accuracy: 0.5846
+Confusion matrix:
+[[58  6  0  4]
+ [ 1 42  7 18]
+ [ 3 21 27 17]
+ [ 0 33  3 32]]
+                     precision    recall  f1-score   support
+
+               rest     0.9355    0.8529    0.8923        68
+         task_motor     0.4118    0.6176    0.4941        68
+    task_story_math     0.7297    0.3971    0.5143        68
+task_working_memory     0.4507    0.4706    0.4604        68
+
+           accuracy                         0.5846       272
+          macro avg     0.6319    0.5846    0.5903       272
+       weighted avg     0.6319    0.5846    0.5903       272
+
+
+============================================================
+Cross-subject
+============================================================
+
+>>> Training majority model
+
+--- majority on cross-test1 ---
+Accuracy: 0.2500
+Confusion matrix:
+[[  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.0000    0.0000    0.0000       136
+         task_motor     0.2500    1.0000    0.4000       136
+    task_story_math     0.0000    0.0000    0.0000       136
+task_working_memory     0.0000    0.0000    0.0000       136
+
+           accuracy                         0.2500       544
+          macro avg     0.0625    0.2500    0.1000       544
+       weighted avg     0.0625    0.2500    0.1000       544
+
+
+--- majority on cross-test2 ---
+Accuracy: 0.2500
+Confusion matrix:
+[[  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.0000    0.0000    0.0000       136
+         task_motor     0.2500    1.0000    0.4000       136
+    task_story_math     0.0000    0.0000    0.0000       136
+task_working_memory     0.0000    0.0000    0.0000       136
+
+           accuracy                         0.2500       544
+          macro avg     0.0625    0.2500    0.1000       544
+       weighted avg     0.0625    0.2500    0.1000       544
+
+
+--- majority on cross-test3 ---
+Accuracy: 0.2500
+Confusion matrix:
+[[  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.0000    0.0000    0.0000       136
+         task_motor     0.2500    1.0000    0.4000       136
+    task_story_math     0.0000    0.0000    0.0000       136
+task_working_memory     0.0000    0.0000    0.0000       136
+
+           accuracy                         0.2500       544
+          macro avg     0.0625    0.2500    0.1000       544
+       weighted avg     0.0625    0.2500    0.1000       544
+
+
+>>> Training logistic_regression model
+
+--- logistic_regression on cross-test1 ---
+Accuracy: 0.5551
+Confusion matrix:
+[[ 66  43  27   0]
+ [  0  77  58   1]
+ [  0  11 125   0]
+ [ 18  55  29  34]]
+                     precision    recall  f1-score   support
+
+               rest     0.7857    0.4853    0.6000       136
+         task_motor     0.4140    0.5662    0.4783       136
+    task_story_math     0.5230    0.9191    0.6667       136
+task_working_memory     0.9714    0.2500    0.3977       136
+
+           accuracy                         0.5551       544
+          macro avg     0.6735    0.5551    0.5356       544
+       weighted avg     0.6735    0.5551    0.5356       544
+
+
+--- logistic_regression on cross-test2 ---
+Accuracy: 0.2960
+Confusion matrix:
+[[ 54  12   0  70]
+ [  1  17   0 118]
+ [  0  14  25  97]
+ [ 13  30  28  65]]
+                     precision    recall  f1-score   support
+
+               rest     0.7941    0.3971    0.5294       136
+         task_motor     0.2329    0.1250    0.1627       136
+    task_story_math     0.4717    0.1838    0.2646       136
+task_working_memory     0.1857    0.4779    0.2675       136
+
+           accuracy                         0.2960       544
+          macro avg     0.4211    0.2960    0.3060       544
+       weighted avg     0.4211    0.2960    0.3060       544
+
+
+--- logistic_regression on cross-test3 ---
+Accuracy: 0.5827
+Confusion matrix:
+[[134   0   0   2]
+ [  0 107  29   0]
+ [  3  57  67   9]
+ [  0  69  58   9]]
+                     precision    recall  f1-score   support
+
+               rest     0.9781    0.9853    0.9817       136
+         task_motor     0.4592    0.7868    0.5799       136
+    task_story_math     0.4351    0.4926    0.4621       136
+task_working_memory     0.4500    0.0662    0.1154       136
+
+           accuracy                         0.5827       544
+          macro avg     0.5806    0.5827    0.5348       544
+       weighted avg     0.5806    0.5827    0.5348       544
+
+
+>>> Training cnn model
+epoch 1/30 | train_loss=1.3625 | val_loss=1.1954 | val_acc=0.5407 
+epoch 2/30 | train_loss=1.1435 | val_loss=1.0506 | val_acc=0.4819 
+epoch 3/30 | train_loss=1.0448 | val_loss=0.9967 | val_acc=0.5204 
+epoch 4/30 | train_loss=0.9358 | val_loss=0.9388 | val_acc=0.6018 
+epoch 5/30 | train_loss=0.8009 | val_loss=0.8773 | val_acc=0.6041 
+epoch 6/30 | train_loss=0.7447 | val_loss=1.0887 | val_acc=0.5882 
+epoch 7/30 | train_loss=0.6519 | val_loss=1.0222 | val_acc=0.6244 
+epoch 8/30 | train_loss=0.5011 | val_loss=1.2207 | val_acc=0.6109 
+epoch 9/30 | train_loss=0.4774 | val_loss=1.0841 | val_acc=0.6357 
+epoch 10/30 | train_loss=0.3739 | val_loss=1.0632 | val_acc=0.6380 
+epoch 11/30 | train_loss=0.2624 | val_loss=1.0951 | val_acc=0.6719 
+epoch 12/30 | train_loss=0.2333 | val_loss=1.0139 | val_acc=0.7059 
+Early stopping at epoch 12 (best val_loss=0.8773)
+
+--- cnn on cross-test1 ---
+Accuracy: 0.4301
+Confusion matrix:
+[[78 30 21  7]
+ [ 2 61 69  4]
+ [ 0 54 79  3]
+ [ 8 96 16 16]]
+                     precision    recall  f1-score   support
+
+               rest     0.8864    0.5735    0.6964       136
+         task_motor     0.2531    0.4485    0.3236       136
+    task_story_math     0.4270    0.5809    0.4922       136
+task_working_memory     0.5333    0.1176    0.1928       136
+
+           accuracy                         0.4301       544
+          macro avg     0.5250    0.4301    0.4263       544
+       weighted avg     0.5250    0.4301    0.4263       544
+
+
+--- cnn on cross-test2 ---
+Accuracy: 0.4173
+Confusion matrix:
+[[91 25  4 16]
+ [11 81 27 17]
+ [ 5 85 30 16]
+ [ 9 68 34 25]]
+                     precision    recall  f1-score   support
+
+               rest     0.7845    0.6691    0.7222       136
+         task_motor     0.3127    0.5956    0.4101       136
+    task_story_math     0.3158    0.2206    0.2597       136
+task_working_memory     0.3378    0.1838    0.2381       136
+
+           accuracy                         0.4173       544
+          macro avg     0.4377    0.4173    0.4075       544
+       weighted avg     0.4377    0.4173    0.4075       544
+
+
+--- cnn on cross-test3 ---
+Accuracy: 0.4798
+Confusion matrix:
+[[104  12   3  17]
+ [  6  69  53   8]
+ [  0  65  57  14]
+ [ 18  67  20  31]]
+                     precision    recall  f1-score   support
+
+               rest     0.8125    0.7647    0.7879       136
+         task_motor     0.3239    0.5074    0.3954       136
+    task_story_math     0.4286    0.4191    0.4238       136
+task_working_memory     0.4429    0.2279    0.3010       136
+
+           accuracy                         0.4798       544
+          macro avg     0.5020    0.4798    0.4770       544
+       weighted avg     0.5020    0.4798    0.4770       544
