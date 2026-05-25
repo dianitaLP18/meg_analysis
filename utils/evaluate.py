@@ -25,4 +25,5 @@ def evaluate_model(model: AbstractModel, loader: DataLoader, name: str = "test")
     print("Confusion matrix:")
     print(cm)
     print(report)
-    return {'accuracy': acc, 'confusion_matrix': cm, 'report': report}
+    return {'accuracy': acc, 'confusion_matrix': cm, 'report': report, 'y_true': labels,
+        'y_pred': preds}

@@ -70,18 +70,12 @@ class CNNModel(AbstractModel):
         self.criterion = nn.CrossEntropyLoss()
 
         return self.model
-
-    def fit(self, train_loader, val_loader=None) -> None:
-        """Train the CNN model
-
-        :param train_loader: DataLoader for training data
-        :param val_loader: DataLoader for validation data
-        :return: training history
-        """
+    
+    def fit(self, train_loader, val_loader=None) -> dict:
         if self.model is None:
             raise ValueError("CNN model has not been created yet")
 
-        history = {'train_loss': [], 'val_loss': [], 'val_acc': []}
+        history = {'train_loss': [], 'val_loss': [], 'train_acc': [], 'val_acc': []}
         best_val_loss = float('inf')
         best_state = None
         epochs_without_improvement = 0
@@ -89,13 +83,20 @@ class CNNModel(AbstractModel):
         for epoch in range(self.epochs):
             self.model.train()
             train_loss = 0.0
+            correct_train, total_train = 0, 0 
+            
             for X, y in train_loader:
                 X, y = X.to(self.device), y.to(self.device)
                 self.optimizer.zero_grad()
-                loss = self.criterion(self.model(X), y)
+                out_train = self.model(X)
+                loss = self.criterion(out_train, y)
                 loss.backward()
                 self.optimizer.step()
                 train_loss += loss.item()
+                
+                # Calculate training accuracy metrics
+                correct_train += (out_train.argmax(1) == y).sum().item()
+                total_train += y.size(0)
 
             val_loss, correct, total = 0.0, 0, 0
             self.model.eval()
@@ -109,10 +110,12 @@ class CNNModel(AbstractModel):
 
             avg_train = train_loss / len(train_loader)
             avg_val = val_loss / len(val_loader)
+            train_acc = correct_train / total_train 
             val_acc = correct / total
 
             history['train_loss'].append(avg_train)
             history['val_loss'].append(avg_val)
+            history['train_acc'].append(train_acc)
             history['val_acc'].append(val_acc)
             self.scheduler.step(avg_val)
 
@@ -120,7 +123,6 @@ class CNNModel(AbstractModel):
                   f"train_loss={avg_train:.4f} | "
                   f"val_loss={avg_val:.4f} | val_acc={val_acc:.4f} ")
 
-            # early stopping
             if avg_val < best_val_loss:
                 best_val_loss = avg_val
                 best_state = copy.deepcopy(self.model.state_dict())
@@ -128,7 +130,7 @@ class CNNModel(AbstractModel):
             else:
                 epochs_without_improvement += 1
                 if epochs_without_improvement >= self.patience:
-                    print(f"Early stopping at epoch {epoch+1} (best val_loss={best_val_loss:.4f})")
+                    print(f"Early stopping at epoch {epoch+1}")
                     break
 
         if best_state is not None:
