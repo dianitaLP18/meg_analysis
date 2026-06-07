@@ -3,7 +3,7 @@ import copy
 import torch
 import torch.nn as nn
 from .base_model import AbstractModel
-
+from data.augmentations import mixup_batch
 """Convolutional Neural Network (CNN) model implementation"""
 
 
@@ -15,7 +15,9 @@ class CNNModel(AbstractModel):
                  lr: float = 5e-4,
                  weight_decay: float = 1e-4,
                  epochs: int = 30,
-                 patience: int = 7) -> None:
+                 patience: int = 7,
+                 use_mixup: bool = False,
+                 mixup_alpha: float = 0.2) -> None:
         """Initialize the CNN model
 
         :param n_input_channels: number of input channels.
@@ -25,6 +27,8 @@ class CNNModel(AbstractModel):
         :param weight_decay: weight decay.
         :param epochs: number of epochs.
         :param patience: patience for early stopping.
+        :param use_mixup: whether to use mixup augmentation.
+        :param mixup_alpha: alpha parameter for mixup augmentation.
         """
         self.n_input_channels = n_input_channels
         self.n_classes = n_classes
@@ -33,12 +37,19 @@ class CNNModel(AbstractModel):
         self.weight_decay = weight_decay
         self.epochs = epochs
         self.patience = patience
+        self.use_mixup = use_mixup
+        self.mixup_alpha = mixup_alpha
         self.model = self.create()
 
     def create(self) -> nn.Module:
         """Create CNN model"""
 
-        device_type = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device_type = 'cuda'
+        elif torch.backends.mps.is_available():
+            device_type = 'mps'
+        else:
+            device_type = 'cpu'
         self.device = torch.device(device_type)
         f = self.base_filters
 
@@ -70,7 +81,7 @@ class CNNModel(AbstractModel):
         self.criterion = nn.CrossEntropyLoss()
 
         return self.model
-    
+
     def fit(self, train_loader, val_loader=None) -> dict:
         if self.model is None:
             raise ValueError("CNN model has not been created yet")
@@ -83,17 +94,24 @@ class CNNModel(AbstractModel):
         for epoch in range(self.epochs):
             self.model.train()
             train_loss = 0.0
-            correct_train, total_train = 0, 0 
-            
+            correct_train, total_train = 0, 0
+
             for X, y in train_loader:
                 X, y = X.to(self.device), y.to(self.device)
                 self.optimizer.zero_grad()
-                out_train = self.model(X)
-                loss = self.criterion(out_train, y)
+
+                if self.use_mixup:
+                    X_mix, y_a, y_b, lam = mixup_batch(X, y, alpha=self.mixup_alpha)
+                    out_train = self.model(X_mix)
+                    loss = lam * self.criterion(out_train, y_a) + (1 - lam) * self.criterion(out_train, y_b)
+                else:
+                    out_train = self.model(X)
+                    loss = self.criterion(out_train, y)
+
                 loss.backward()
                 self.optimizer.step()
                 train_loss += loss.item()
-                
+
                 # Calculate training accuracy metrics
                 correct_train += (out_train.argmax(1) == y).sum().item()
                 total_train += y.size(0)
@@ -110,7 +128,7 @@ class CNNModel(AbstractModel):
 
             avg_train = train_loss / len(train_loader)
             avg_val = val_loss / len(val_loader)
-            train_acc = correct_train / total_train 
+            train_acc = correct_train / total_train
             val_acc = correct / total
 
             history['train_loss'].append(avg_train)

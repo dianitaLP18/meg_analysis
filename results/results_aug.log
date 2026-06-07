@@ -1,0 +1,278 @@
+============================================================
+Intra-subject
+============================================================
+
+>>> Training majority model
+
+--- majority on intra-test ---
+Accuracy: 0.2500
+Confusion matrix:
+[[  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]
+ [  0 136   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.0000    0.0000    0.0000       136
+         task_motor     0.2500    1.0000    0.4000       136
+    task_story_math     0.0000    0.0000    0.0000       136
+task_working_memory     0.0000    0.0000    0.0000       136
+
+           accuracy                         0.2500       544
+          macro avg     0.0625    0.2500    0.1000       544
+       weighted avg     0.0625    0.2500    0.1000       544
+
+
+>>> Training logistic_regression model
+
+--- logistic_regression on intra-test ---
+Accuracy: 0.6029
+Confusion matrix:
+[[136   0   0   0]
+ [  0 134   2   0]
+ [ 18   0  39  79]
+ [  4  49  64  19]]
+                     precision    recall  f1-score   support
+
+               rest     0.8608    1.0000    0.9252       136
+         task_motor     0.7322    0.9853    0.8401       136
+    task_story_math     0.3714    0.2868    0.3237       136
+task_working_memory     0.1939    0.1397    0.1624       136
+
+           accuracy                         0.6029       544
+          macro avg     0.5396    0.6029    0.5628       544
+       weighted avg     0.5396    0.6029    0.5628       544
+
+
+>>> Training cnn model
+epoch 1/30 | train_loss=1.3295 | val_loss=1.1441 | val_acc=0.4013 
+epoch 2/30 | train_loss=1.0565 | val_loss=1.0101 | val_acc=0.4307 
+epoch 3/30 | train_loss=0.8946 | val_loss=0.9659 | val_acc=0.5273 
+epoch 4/30 | train_loss=0.7570 | val_loss=0.9480 | val_acc=0.5483 
+epoch 5/30 | train_loss=0.6847 | val_loss=0.9631 | val_acc=0.5714 
+epoch 6/30 | train_loss=0.5578 | val_loss=0.9108 | val_acc=0.5987 
+epoch 7/30 | train_loss=0.4721 | val_loss=0.7425 | val_acc=0.6639 
+epoch 8/30 | train_loss=0.3972 | val_loss=0.8000 | val_acc=0.6933 
+epoch 9/30 | train_loss=0.3436 | val_loss=0.9293 | val_acc=0.6345 
+epoch 10/30 | train_loss=0.2655 | val_loss=1.0283 | val_acc=0.6324 
+epoch 11/30 | train_loss=0.3379 | val_loss=1.0319 | val_acc=0.5966 
+epoch 12/30 | train_loss=0.1674 | val_loss=0.9230 | val_acc=0.6639 
+epoch 13/30 | train_loss=0.1362 | val_loss=0.9706 | val_acc=0.6639 
+epoch 14/30 | train_loss=0.1407 | val_loss=1.0225 | val_acc=0.6786 
+Early stopping at epoch 14
+Generating training curves for cnn...
+/Users/mede/meg_analysis/utils/plotting_helpers.py:85: UserWarning: linestyle is redundantly defined by the 'linestyle' keyword argument and the fmt string "o-" (-> linestyle='-'). The keyword argument will take precedence.
+  plt.plot(train_accs, 'o-', label='Training Accuracy', color='green', linestyle='-')
+/Users/mede/meg_analysis/utils/plotting_helpers.py:86: UserWarning: linestyle is redundantly defined by the 'linestyle' keyword argument and the fmt string "o--" (-> linestyle='--'). The keyword argument will take precedence.
+  plt.plot(val_accs, 'o--', label='Validation Accuracy', color='orange', linestyle='--')
+
+--- cnn on intra-test ---
+Accuracy: 0.5882
+Confusion matrix:
+[[125   0   0  11]
+ [  5  75  18  38]
+ [  2  11  63  60]
+ [  6  55  18  57]]
+                     precision    recall  f1-score   support
+
+               rest     0.9058    0.9191    0.9124       136
+         task_motor     0.5319    0.5515    0.5415       136
+    task_story_math     0.6364    0.4632    0.5362       136
+task_working_memory     0.3434    0.4191    0.3775       136
+
+           accuracy                         0.5882       544
+          macro avg     0.6044    0.5882    0.5919       544
+       weighted avg     0.6044    0.5882    0.5919       544
+
+
+============================================================
+Cross-subject
+============================================================
+
+>>> Training majority model
+
+--- majority on cross-test1 ---
+Accuracy: 0.2500
+Confusion matrix:
+[[272   0   0   0]
+ [272   0   0   0]
+ [272   0   0   0]
+ [272   0   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.2500    1.0000    0.4000       272
+         task_motor     0.0000    0.0000    0.0000       272
+    task_story_math     0.0000    0.0000    0.0000       272
+task_working_memory     0.0000    0.0000    0.0000       272
+
+           accuracy                         0.2500      1088
+          macro avg     0.0625    0.2500    0.1000      1088
+       weighted avg     0.0625    0.2500    0.1000      1088
+
+
+--- majority on cross-test2 ---
+Accuracy: 0.2500
+Confusion matrix:
+[[272   0   0   0]
+ [272   0   0   0]
+ [272   0   0   0]
+ [272   0   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.2500    1.0000    0.4000       272
+         task_motor     0.0000    0.0000    0.0000       272
+    task_story_math     0.0000    0.0000    0.0000       272
+task_working_memory     0.0000    0.0000    0.0000       272
+
+           accuracy                         0.2500      1088
+          macro avg     0.0625    0.2500    0.1000      1088
+       weighted avg     0.0625    0.2500    0.1000      1088
+
+
+--- majority on cross-test3 ---
+Accuracy: 0.2500
+Confusion matrix:
+[[272   0   0   0]
+ [272   0   0   0]
+ [272   0   0   0]
+ [272   0   0   0]]
+                     precision    recall  f1-score   support
+
+               rest     0.2500    1.0000    0.4000       272
+         task_motor     0.0000    0.0000    0.0000       272
+    task_story_math     0.0000    0.0000    0.0000       272
+task_working_memory     0.0000    0.0000    0.0000       272
+
+           accuracy                         0.2500      1088
+          macro avg     0.0625    0.2500    0.1000      1088
+       weighted avg     0.0625    0.2500    0.1000      1088
+
+>>> Training logistic_regression model
+
+--- logistic_regression on cross-test1 ---
+Accuracy: 0.5956
+Confusion matrix:
+[[159  77  36   0]
+ [  0 162 104   6]
+ [  0  13 259   0]
+ [ 33  81  90  68]]
+                     precision    recall  f1-score   support
+
+               rest     0.8281    0.5846    0.6853       272
+         task_motor     0.4865    0.5956    0.5355       272
+    task_story_math     0.5297    0.9522    0.6807       272
+task_working_memory     0.9189    0.2500    0.3931       272
+
+           accuracy                         0.5956      1088
+          macro avg     0.6908    0.5956    0.5737      1088
+       weighted avg     0.6908    0.5956    0.5737      1088
+
+
+--- logistic_regression on cross-test2 ---
+Accuracy: 0.3272
+Confusion matrix:
+[[138  13   0 121]
+ [  6  38   0 228]
+ [  0  16  43 213]
+ [ 35  76  24 137]]
+                     precision    recall  f1-score   support
+
+               rest     0.7709    0.5074    0.6120       272
+         task_motor     0.2657    0.1397    0.1831       272
+    task_story_math     0.6418    0.1581    0.2537       272
+task_working_memory     0.1960    0.5037    0.2822       272
+
+           accuracy                         0.3272      1088
+          macro avg     0.4686    0.3272    0.3327      1088
+       weighted avg     0.4686    0.3272    0.3327      1088
+
+
+--- logistic_regression on cross-test3 ---
+Accuracy: 0.5699
+Confusion matrix:
+[[263   1   0   8]
+ [  2 194  71   5]
+ [ 18  79 149  26]
+ [  0 148 110  14]]
+                     precision    recall  f1-score   support
+
+               rest     0.9293    0.9669    0.9477       272
+         task_motor     0.4597    0.7132    0.5591       272
+    task_story_math     0.4515    0.5478    0.4950       272
+task_working_memory     0.2642    0.0515    0.0862       272
+
+           accuracy                         0.5699      1088
+          macro avg     0.5262    0.5699    0.5220      1088
+       weighted avg     0.5262    0.5699    0.5220      1088
+
+>>> Training cnn model
+epoch 1/30 | train_loss=1.2472 | val_loss=1.0369 | val_acc=0.5419 
+epoch 2/30 | train_loss=0.9666 | val_loss=0.9160 | val_acc=0.6176 
+epoch 3/30 | train_loss=0.6941 | val_loss=0.8891 | val_acc=0.6527 
+epoch 4/30 | train_loss=0.5146 | val_loss=1.1924 | val_acc=0.5973 
+epoch 5/30 | train_loss=0.4240 | val_loss=0.9424 | val_acc=0.6561 
+epoch 6/30 | train_loss=0.3118 | val_loss=1.3716 | val_acc=0.6109 
+epoch 7/30 | train_loss=0.2845 | val_loss=1.1948 | val_acc=0.6527 
+epoch 8/30 | train_loss=0.1647 | val_loss=1.2961 | val_acc=0.6437 
+epoch 9/30 | train_loss=0.1232 | val_loss=1.3615 | val_acc=0.6471 
+epoch 10/30 | train_loss=0.1277 | val_loss=1.1450 | val_acc=0.6799 
+Early stopping at epoch 10
+Generating training curves for cnn...
+/Users/mede/meg_analysis/utils/plotting_helpers.py:85: UserWarning: linestyle is redundantly defined by the 'linestyle' keyword argument and the fmt string "o-" (-> linestyle='-'). The keyword argument will take precedence.
+  plt.plot(train_accs, 'o-', label='Training Accuracy', color='green', linestyle='-')
+/Users/mede/meg_analysis/utils/plotting_helpers.py:86: UserWarning: linestyle is redundantly defined by the 'linestyle' keyword argument and the fmt string "o--" (-> linestyle='--'). The keyword argument will take precedence.
+  plt.plot(val_accs, 'o--', label='Validation Accuracy', color='orange', linestyle='--')
+
+--- cnn on cross-test1 ---
+Accuracy: 0.4256
+Confusion matrix:
+[[130  64  41  37]
+ [  0 151 110  11]
+ [  3 133 128   8]
+ [  5 185  28  54]]
+                     precision    recall  f1-score   support
+
+               rest     0.9420    0.4779    0.6341       272
+         task_motor     0.2833    0.5551    0.3752       272
+    task_story_math     0.4169    0.4706    0.4421       272
+task_working_memory     0.4909    0.1985    0.2827       272
+
+           accuracy                         0.4256      1088
+          macro avg     0.5333    0.4256    0.4335      1088
+       weighted avg     0.5333    0.4256    0.4335      1088
+
+--- cnn on cross-test2 ---
+Accuracy: 0.4642
+Confusion matrix:
+[[171  57   6  38]
+ [  9 198  22  43]
+ [  2 156  64  50]
+ [ 16 133  51  72]]
+                     precision    recall  f1-score   support
+
+               rest     0.8636    0.6287    0.7277       272
+         task_motor     0.3640    0.7279    0.4853       272
+    task_story_math     0.4476    0.2353    0.3084       272
+task_working_memory     0.3547    0.2647    0.3032       272
+
+           accuracy                         0.4642      1088
+          macro avg     0.5075    0.4642    0.4561      1088
+       weighted avg     0.5075    0.4642    0.4561      1088
+
+--- cnn on cross-test3 ---
+Accuracy: 0.5322
+Confusion matrix:
+[[206  27   7  32]
+ [  6 183  77   6]
+ [  6  95 113  58]
+ [ 22 146  27  77]]
+                     precision    recall  f1-score   support
+
+               rest     0.8583    0.7574    0.8047       272
+         task_motor     0.4058    0.6728    0.5062       272
+    task_story_math     0.5045    0.4154    0.4556       272
+task_working_memory     0.4451    0.2831    0.3461       272
+
+           accuracy                         0.5322      1088
+          macro avg     0.5534    0.5322    0.5282      1088
+       weighted avg     0.5534    0.5322    0.5282      1088

@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from collections import OrderedDict, defaultdict
 from typing import Literal
 from sklearn.model_selection import train_test_split
+from data.augmentations import AugmentationConfig, Augmentor
 
 
 # configuration variables
@@ -17,7 +18,7 @@ LABEL_MAP = {
     'task_working_memory': 3
 }
 WINDOW_SIZE = 256
-STRIDE = 256
+STRIDE = 128
 DOWNSAMPLE_FACTOR = 4
 NORM_METHOD = Literal['zscore', 'minmax']
 
@@ -99,7 +100,8 @@ def build_window_index(folder_path: str, filenames: list[str] | None = None) -> 
 
 
 class MEGWindowDataset(Dataset):
-    def __init__(self, index: list[tuple[str, int, int]], norm_method: NORM_METHOD, cache_size: int = 1) -> None:
+    def __init__(self, index: list[tuple[str, int, int]],
+                 norm_method: NORM_METHOD, augmentor: Augmentor | None = None, cache_size: int = 1) -> None:
         """Initialises the dataset with an index of file paths and column ranges.
 
         :param index: list of tuples (filepath, start_col, label).
@@ -107,6 +109,7 @@ class MEGWindowDataset(Dataset):
         """
         self.index = index
         self.norm_method = norm_method
+        self.augmentor = augmentor
         self.cache_size = cache_size
         self._cache: OrderedDict[str, np.ndarray] = OrderedDict()
 
@@ -117,6 +120,9 @@ class MEGWindowDataset(Dataset):
         filepath, start, label = self.index[idx]
         matrix = self._get_matrix(filepath)
         window = matrix[:, start:start + WINDOW_SIZE]
+        if self.augmentor is not None:
+            window = self.augmentor(window)
+
         return torch.from_numpy(window).float(), torch.tensor(label, dtype=torch.long)
 
     def _get_matrix(self, filepath: str) -> np.ndarray:
@@ -186,7 +192,8 @@ def make_loaders(
         train_folder: str, test_folders: list[str],
         norm_method: NORM_METHOD, batch_size: int = 32,
         val_fraction: float = 0.2, num_workers: int = 2,
-        cross_subject: bool = False) -> tuple[DataLoader, DataLoader, list[DataLoader]]:
+        cross_subject: bool = False,
+        augment_config: AugmentationConfig | None = None) -> tuple[DataLoader, DataLoader, list[DataLoader]]:
     """Creates PyTorch DataLoaders for training and validation datasets.
 
     :param train_folder: path to the training data folder.
@@ -206,9 +213,13 @@ def make_loaders(
     train_index = build_window_index(train_folder, filenames=train_files)
     val_index = build_window_index(train_folder, filenames=val_files)
 
-    train_dataset = MEGWindowDataset(train_index, norm_method=norm_method)
-    val_dataset = MEGWindowDataset(val_index, norm_method=norm_method)
-    test_datasets = [MEGWindowDataset(build_window_index(p), norm_method=norm_method) for p in test_folders]
+    augmentor = Augmentor(augment_config) if augment_config is not None else None
+
+    train_dataset = MEGWindowDataset(train_index, norm_method=norm_method, augmentor=augmentor)
+    val_dataset = MEGWindowDataset(val_index, norm_method=norm_method, augmentor=None)
+    test_datasets = [
+        MEGWindowDataset(build_window_index(p), norm_method=norm_method, augmentor=None) for p in test_folders
+    ]
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
@@ -219,7 +230,7 @@ def make_loaders(
     assert len(val_index) > 0, f"Empty val index for {train_folder}"
     train_labels = {lbl for _, _, lbl in train_index}
     val_labels = {lbl for _, _, lbl in val_index}
-    assert train_labels == set(LABEL_MAP.values()), f"Missing classes in train: {set(LABEL_MAP.values()) - train_labels}"
+    assert train_labels == set(LABEL_MAP.values()), f"Missing classes in train:{set(LABEL_MAP.values()) - train_labels}"
     assert val_labels == set(LABEL_MAP.values()), f"Missing classes in val: {set(LABEL_MAP.values()) - val_labels}"
 
     return train_loader, val_loader, test_loaders
