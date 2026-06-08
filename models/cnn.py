@@ -2,6 +2,7 @@ import numpy as np
 import copy
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 from .base_model import AbstractModel
 from data.augmentations import mixup_batch
 """Convolutional Neural Network (CNN) model implementation"""
@@ -82,7 +83,7 @@ class CNNModel(AbstractModel):
 
         return self.model
 
-    def fit(self, train_loader, val_loader=None) -> dict:
+    def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> dict:
         if self.model is None:
             raise ValueError("CNN model has not been created yet")
 
@@ -155,7 +156,7 @@ class CNNModel(AbstractModel):
             self.model.load_state_dict(best_state)
         return history
 
-    def predict(self, loader) -> tuple[np.ndarray, np.ndarray]:
+    def predict(self, loader: DataLoader) -> tuple[np.ndarray, np.ndarray]:
         """Make predictions using the trained model
 
         :param loader: DataLoader for batches to predict on

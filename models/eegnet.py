@@ -67,6 +67,8 @@ class EEGNetModel(AbstractModel):
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=lr)
 
     def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> None:
+        history = {'train_loss': [], 'val_loss': [], 'train_acc': [], 'val_acc': []}
+
         for epoch in range(1, self.epochs + 1):
             self.net.train()
             train_loss, correct, total = 0.0, 0, 0
@@ -84,24 +86,35 @@ class EEGNetModel(AbstractModel):
 
             val_loss, val_acc = self._evaluate(val_loader)
 
+            history['train_loss'].append(train_loss/total)
+            history['train_acc'].append(correct/total)
+            history['val_loss'].append(val_loss)
+            history['val_acc'].append(val_acc)
+
             print(
                 f"epoch {epoch:3d}/{self.epochs} | "
                 f"train loss {train_loss/total:.4f}  acc {correct/total:.4f} | "
                 f"val loss {val_loss:.4f}  acc {val_acc:.4f}"
             )
+        return history
 
     def predict(self, test_loader: DataLoader) -> tuple[np.ndarray, np.ndarray]:
         self.net.eval()
-        all_labels, all_probs = [], []
+        #all_labels, all_probs = [], []
+        all_preds, all_labels = [], []
 
         with torch.no_grad():
-            for X, _ in test_loader:
+            for X, y in test_loader:
                 X = X.to(self.device)
-                probs = torch.softmax(self.net(X), dim=1)
-                all_probs.append(probs.cpu().numpy())
-                all_labels.append(probs.argmax(1).cpu().numpy())
+                #probs = torch.softmax(self.net(X), dim=1)
+                logits = self.net(X)
+                #all_probs.append(probs.cpu().numpy())
+                #all_labels.append(probs.argmax(1).cpu().numpy())
+                all_preds.append(logits.argmax(dim=1).cpu().numpy())
+                all_labels.append(y.cpu().numpy())
 
-        return np.concatenate(all_labels), np.concatenate(all_probs)
+        #return np.concatenate(all_labels), np.concatenate(all_probs)
+        return np.concatenate(all_preds), np.concatenate(all_labels)
 
     def _evaluate(self, loader: DataLoader) -> tuple[float, float]:
         """Shared val/test loop — returns (avg_loss, accuracy)."""
